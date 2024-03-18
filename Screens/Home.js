@@ -6,14 +6,13 @@ import {
   StyleSheet,
   Dimensions,
   TouchableOpacity,
-  Image,
   TextInput,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { getAuth, signOut } from "firebase/auth";
-import HamburgerIcon from "../assets/hamburger.png";
-import SearchIcon from "../assets/search.png";
+import { app } from "firebase/app";
+import { MaterialIcons } from "@expo/vector-icons"; // Import MaterialIcons from Expo
 
 const auth = getAuth(app);
 
@@ -42,12 +41,14 @@ const Home = ({ navigation }) => {
     });
     console.log(location);
     // Move map to the current location
-    mapRef.current.animateToRegion({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      latitudeDelta: 0.0922,
-      longitudeDelta: 0.0421,
-    });
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+    }
   };
 
   const handleLogout = async () => {
@@ -73,12 +74,14 @@ const Home = ({ navigation }) => {
       if (data && data.length > 0) {
         const selectedLocation = data[0];
         // Move map to the selected location
-        mapRef.current.animateToRegion({
-          latitude: parseFloat(selectedLocation.lat),
-          longitude: parseFloat(selectedLocation.lon),
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
+        if (mapRef.current) {
+          mapRef.current.animateToRegion({
+            latitude: parseFloat(selectedLocation.lat),
+            longitude: parseFloat(selectedLocation.lon),
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          });
+        }
       } else {
         console.log("Location not found");
       }
@@ -104,7 +107,9 @@ const Home = ({ navigation }) => {
             latitude: location.latitude,
             longitude: location.longitude,
           }}
-        />
+        >
+          <MaterialIcons name="location-on" size={30} color="blue" />
+        </Marker>
       </MapView>
       {showWelcome && (
         <View style={styles.sidebar}>
@@ -113,23 +118,23 @@ const Home = ({ navigation }) => {
         </View>
       )}
       <TouchableOpacity
-        style={styles.navbar}
+        style={styles.toggleButton}
         onPress={handleToggleSidebar}
-        activeOpacity={1}
       >
-        <Image source={HamburgerIcon} style={styles.hamburgerIcon} />
+        <Text style={styles.toggleButtonText}>{HamburgerName}</Text>
       </TouchableOpacity>
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search Location"
-          value={searchText}
-          onChangeText={(text) => setSearchText(text)}
-        />
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-          <Image source={SearchIcon} style={styles.searchIcon} />
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.locationButton} onPress={getLocation}>
+        <MaterialIcons name="my-location" size={30} color="green" />
+      </TouchableOpacity>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search for a location"
+        value={searchText}
+        onChangeText={(text) => setSearchText(text)}
+      />
+      <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+        <Text style={styles.buttonText}>Search</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -137,72 +142,83 @@ const Home = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: "relative",
-  },
-  navbar: {
-    position: "absolute",
-    top: 29,
-    left: 0,
-    right: 0,
-    height: 50,
-    backgroundColor: "lightgray",
-    justifyContent: "center",
-    alignItems: "flex-end",
-    zIndex: 2,
   },
   sidebar: {
     position: "absolute",
-    top: 80,
-    width: "100%",
-    backgroundColor: "rgba(53, 53, 53, 0.8)",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 250,
+    backgroundColor: "white",
     borderRightWidth: 1,
     borderColor: "gray",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 3,
   },
   emailText: {
     fontSize: 20,
     marginBottom: 20,
-    color: "white",
   },
   map: {
     flex: 1,
     width: deviceWidth,
     height: deviceHeight,
-    zIndex: 1,
   },
-  hamburgerIcon: {
-    width: 30,
-    height: 30,
-    marginRight: 10,
-  },
-  searchContainer: {
+  toggleButton: {
     position: "absolute",
-    top: 20,
+    top: 100,
     left: 20,
-    right: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    zIndex: 2,
+    backgroundColor: "grey",
+    height: 60,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 150,
+  },
+  locationButton: {
+    position: "absolute",
+    top: 150, // Adjusted position for better visibility
+    left: 20,
+    backgroundColor: "grey",
+    height: 60,
+    width: 60, // Adjusted width for better visibility
+    borderRadius: 150,
+    justifyContent: "center", // Center the icon vertically
+    alignItems: "center", // Center the icon horizontally
+  },
+  toggleButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 30,
+    textAlign: "center",
+    marginTop: 5,
   },
   searchInput: {
-    flex: 1,
-    height: 40,
+    position: "absolute",
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 50,
+    width: 300,
+    height: 35,
+    fontSize: 16,
+    top: 50,
+    left: 5,
     backgroundColor: "white",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    marginRight: 10,
   },
   searchButton: {
-    backgroundColor: "#007bff",
-    padding: 10,
-    borderRadius: 20,
+    position: "absolute",
+    top: 50,
+    right: 5,
+    padding: 8,
+    backgroundColor: "grey",
+    borderRadius: 4,
+    width: 100,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  searchIcon: {
-    width: 20,
-    height: 20,
-    tintColor: "white",
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
   },
 });
 
