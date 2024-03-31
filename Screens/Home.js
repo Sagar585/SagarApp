@@ -26,9 +26,8 @@ const Home = ({ navigation }) => {
   });
   const [showWelcome, setShowWelcome] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [searchedLocation, setSearchedLocation] = useState(null); // New state to store searched location
   const mapRef = useRef(null);
-  const userEmail = auth.currentUser ? auth.currentUser.email : "User";
-  const HamburgerName = userEmail.charAt(0).toUpperCase();
 
   const getLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
@@ -60,10 +59,10 @@ const Home = ({ navigation }) => {
       console.error("Logout error:", error.message);
     }
   };
-
   const handleToggleSidebar = () => {
     setShowWelcome(!showWelcome);
   };
+  
 
   const handleSearch = async () => {
     try {
@@ -73,6 +72,11 @@ const Home = ({ navigation }) => {
       const data = await response.json();
       if (data && data.length > 0) {
         const selectedLocation = data[0];
+        // Set searched location state
+        setSearchedLocation({
+          latitude: parseFloat(selectedLocation.lat),
+          longitude: parseFloat(selectedLocation.lon),
+        });
         // Move map to the selected location
         if (mapRef.current) {
           mapRef.current.animateToRegion({
@@ -92,6 +96,24 @@ const Home = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Navbar */}
+      <View style={styles.navbar}>
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search for a location"
+          value={searchText}
+          onChangeText={(text) => setSearchText(text)}
+        />
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+          <Text style={styles.buttonText}>Search</Text>
+        </TouchableOpacity>
+      </View>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <MaterialIcons name="logout" size={30} color="white" />
+        </TouchableOpacity>
+      </View>
+
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -102,6 +124,7 @@ const Home = ({ navigation }) => {
           longitudeDelta: 0.0421,
         }}
       >
+        {/* Marker for current location */}
         <Marker
           coordinate={{
             latitude: location.latitude,
@@ -110,31 +133,25 @@ const Home = ({ navigation }) => {
         >
           <MaterialIcons name="location-on" size={30} color="blue" />
         </Marker>
+        {/* Marker for searched location */}
+        {searchedLocation && (
+          <Marker
+            coordinate={{
+              latitude: searchedLocation.latitude,
+              longitude: searchedLocation.longitude,
+            }}
+          />
+        )}
       </MapView>
-      {showWelcome && (
-        <View style={styles.sidebar}>
-          <Text style={styles.emailText}>Welcome, {userEmail}</Text>
-          <Button title="Logout" onPress={handleLogout} />
-        </View>
-      )}
+
+      {/* Location Button */}
       <TouchableOpacity
-        style={styles.toggleButton}
-        onPress={handleToggleSidebar}
+        style={styles.locationButton}
+        onPress={getLocation}
       >
-        <Text style={styles.toggleButtonText}>{HamburgerName}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.locationButton} onPress={getLocation}>
         <MaterialIcons name="my-location" size={30} color="green" />
       </TouchableOpacity>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search for a location"
-        value={searchText}
-        onChangeText={(text) => setSearchText(text)}
-      />
-      <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-        <Text style={styles.buttonText}>Search</Text>
-      </TouchableOpacity>
+
     </View>
   );
 };
@@ -143,36 +160,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  sidebar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    bottom: 0,
-    width: 250,
-    backgroundColor: "white",
-    borderRightWidth: 1,
-    borderColor: "gray",
-    justifyContent: "center",
+  navbar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "blue",
+    padding: 10,
+    marginTop: 40,
   },
-  emailText: {
-    fontSize: 20,
-    marginBottom: 20,
+
+  logoutButton: {
+    padding: 5,
   },
   map: {
     flex: 1,
     width: deviceWidth,
     height: deviceHeight,
-  },
-  toggleButton: {
-    position: "absolute",
-    top: 100,
-    left: 20,
-    backgroundColor: "grey",
-    height: 60,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 150,
   },
   locationButton: {
     position: "absolute",
@@ -185,33 +188,26 @@ const styles = StyleSheet.create({
     justifyContent: "center", // Center the icon vertically
     alignItems: "center", // Center the icon horizontally
   },
-  toggleButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 30,
-    textAlign: "center",
-    marginTop: 5,
+  searchContainer: {
+    // position: "absolute",
+    // top: 110,
+    flexDirection: "row",
+    alignItems: "center",
   },
   searchInput: {
-    position: "absolute",
     padding: 8,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 50,
-    width: 300,
+    width: 250,
     height: 35,
     fontSize: 16,
-    top: 50,
-    left: 5,
     backgroundColor: "white",
   },
   searchButton: {
-    position: "absolute",
-    top: 50,
-    right: 5,
     padding: 8,
     backgroundColor: "grey",
-    borderRadius: 4,
+    borderRadius: 50,
     width: 100,
     alignItems: "center",
     justifyContent: "center",
@@ -219,6 +215,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 16,
+    
   },
 });
 
